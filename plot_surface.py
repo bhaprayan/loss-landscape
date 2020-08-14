@@ -24,6 +24,8 @@ import model_loader
 import scheduler
 import mpi4pytorch as mpi
 
+os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
+
 def name_surface_file(args, dir_file):
     # skip if surf_file is specified in args
     if args.surf_file:
@@ -76,7 +78,10 @@ def crunch(surf_file, net, w, s, d, dataloader, loss_key, acc_key, comm, rank, a
         using MPI reduce.
     """
 
-    f = h5py.File(surf_file, 'r+' if rank == 0 else 'r')
+    if rank == 0:
+        f = h5py.File(surf_file, 'r+')
+    else:
+        f = h5py.File(surf_file, 'r')
     losses, accuracies = [], []
     xcoordinates = f['xcoordinates'][:]
     ycoordinates = f['ycoordinates'][:] if 'ycoordinates' in f.keys() else None
@@ -229,10 +234,10 @@ if __name__ == '__main__':
     # Check plotting resolution
     #--------------------------------------------------------------------------
     try:
-        args.xmin, args.xmax, args.xnum = [float(a) for a in args.x.split(':')]
+        args.xmin, args.xmax, args.xnum = [int(a) for a in args.x.split(':')]
         args.ymin, args.ymax, args.ynum = (None, None, None)
         if args.y:
-            args.ymin, args.ymax, args.ynum = [float(a) for a in args.y.split(':')]
+            args.ymin, args.ymax, args.ynum = [int(a) for a in args.y.split(':')]
             assert args.ymin and args.ymax and args.ynum, \
             'You specified some arguments for the y axis, but not all'
     except:
