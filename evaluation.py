@@ -37,7 +37,7 @@ def eval_custom(model, loader, use_cuda=False):
             inputs = Variable(inputs)
             if use_cuda:
                 inputs = inputs.cuda()
-            loss = model.critic.q1_forward(inputs, model.actor(inputs)).mean()
+            loss = -model.critic.q1_forward(inputs, model.actor(inputs)).mean()
             total_loss += loss.item()*batch_size
         total_loss = total_loss / total
         total_acc = total_loss
