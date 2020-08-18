@@ -26,7 +26,12 @@ def load_custom(env_id="HalfCheetah-v2", batch_size=128,
     # TODO: check if any preprocessing has to be done?
 
     env = gym.make(env_id)
-    trainset = env.get_dataset()['observations'][:2048]
+    trainset = env.get_dataset()['observations']
+    np.random.seed(0)
+    sample_size = 2048
+    indices = np.arange(len(trainset))
+    indices = np.random.choice(indices, sample_size, replace=False)
+    trainset = trainset[indices]
 
     # If data_split>1, then randomly select a subset of the data. E.g., if datasplit=3, then
     # randomly choose 1/3 of the data.
@@ -36,7 +41,6 @@ def load_custom(env_id="HalfCheetah-v2", batch_size=128,
 
         # Randomly sample indices. Use seed=0 in the generator to make this reproducible
         state = np.random.get_state()
-        np.random.seed(0)
         indices = np.random.choice(indices, data_num, replace=False)
         np.random.set_state(state)
 
