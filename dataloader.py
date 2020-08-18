@@ -1,13 +1,54 @@
 import torch
+import gym
+import d4rl
 import torchvision
 from torchvision import transforms
 import os
 import numpy as np
 import argparse
 
+
 def get_relative_path(file):
     script_dir = os.path.dirname(__file__)  # <-- absolute dir the script is in
     return os.path.join(script_dir, file)
+
+
+def load_custom(env_id="HalfCheetah-v2", batch_size=128,
+                threads=2, data_split=1, split_idx=0):
+    """
+    Setup dataloader for custom dataset (d4rl).
+
+    Returns:
+        train_loader
+    """
+    assert split_idx < data_split, 'the index of data partition should be smaller than the total number of split'
+
+    # TODO: check if any preprocessing has to be done?
+
+    env = gym.make(env_id)
+    trainset = env.get_dataset()['observations'][:2048]
+
+    # If data_split>1, then randomly select a subset of the data. E.g., if datasplit=3, then
+    # randomly choose 1/3 of the data.
+    if data_split > 1:
+        indices = torch.tensor(np.arange(len(trainset)))
+        data_num = len(trainset) // data_split # the number of data in a chunk of the split
+
+        # Randomly sample indices. Use seed=0 in the generator to make this reproducible
+        state = np.random.get_state()
+        np.random.seed(0)
+        indices = np.random.choice(indices, data_num, replace=False)
+        np.random.set_state(state)
+
+        train_sampler = torch.utils.data.sampler.SubsetRandomSampler(indices)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
+                                                   sampler=train_sampler,
+                                                   shuffle=False, num_workers=threads)
+    else:
+        kwargs = {'num_workers': 2, 'pin_memory': True}
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
+                                                  shuffle=False, **kwargs)
+    return train_loader
 
 
 def load_dataset(dataset='cifar10', datapath='cifar10/data', batch_size=128, \

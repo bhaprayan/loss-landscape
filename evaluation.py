@@ -9,6 +9,42 @@ import torch.nn.functional as F
 import time
 from torch.autograd.variable import Variable
 
+
+def eval_custom(model, loader, use_cuda=False):
+    """
+    Evaluate the loss value for a given 'net' on the dataset provided by the loader.
+
+    Args:
+        model: the RL policy (actor + critic)
+        loader: dataloader
+        use_cuda: use cuda or not
+    Returns:
+        loss value and accuracy
+    """
+    total_loss = 0
+    total = 0 # number of samples
+
+    if use_cuda:
+        model.actor.cuda()
+        model.critic.cuda()
+    model.actor.eval()
+    model.critic.eval()
+
+    with torch.no_grad():
+        for batch_idx, (inputs) in enumerate(loader):
+            batch_size = inputs.size(0)
+            total += batch_size
+            inputs = Variable(inputs)
+            if use_cuda:
+                inputs = inputs.cuda()
+            loss = model.critic.q1_forward(inputs, model.actor(inputs)).mean()
+            total_loss += loss.item()*batch_size
+        total_loss = total_loss / total
+        total_acc = total_loss
+
+    return total_loss, total_acc
+
+
 def eval_loss(net, criterion, loader, use_cuda=False):
     """
     Evaluate the loss value for a given 'net' on the dataset provided by the loader.
