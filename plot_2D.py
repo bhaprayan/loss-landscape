@@ -12,6 +12,22 @@ from os.path import exists
 import seaborn as sns
 
 
+def load_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel=0.5, show=False):
+    """Load contour map from surf file."""
+    f = h5py.File(surf_file, 'r')
+    x = np.array(f['xcoordinates'][:])
+    y = np.array(f['ycoordinates'][:])
+    Z = np.array(f[surf_name][:])
+
+    print('------------------------------------------------------------------')
+    print('plot_2d_contour')
+    print('------------------------------------------------------------------')
+    print("loading surface file: " + surf_file)
+    print('len(xcoordinates): %d   len(ycoordinates): %d' % (len(x), len(y)))
+    print('max(%s) = %f \t min(%s) = %f' % (surf_name, np.max(Z), surf_name, np.min(Z)))
+    return Z
+
+
 def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel=0.5, show=False):
     """Plot 2D contour map and 3D surface."""
 
