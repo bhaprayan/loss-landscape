@@ -7,10 +7,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time
+import ipdb
 from torch.autograd.variable import Variable
 
 
-def eval_custom(model, loader, use_cuda=False):
+def eval_custom(model, loader, variable="states", use_cuda=False, num_samples=64):
     """
     Evaluate the loss value for a given 'net' on the dataset provided by the loader.
 
@@ -21,7 +22,7 @@ def eval_custom(model, loader, use_cuda=False):
     Returns:
         loss value and accuracy
     """
-    total_loss = 0
+    total_loss, total_acc = 0, 0
     total = 0 # number of samples
 
     if use_cuda:
@@ -30,18 +31,35 @@ def eval_custom(model, loader, use_cuda=False):
     model.actor.eval()
     model.critic.eval()
 
-    with torch.no_grad():
-        for batch_idx, (inputs) in enumerate(loader):
-            batch_size = inputs.size(0)
-            total += batch_size
-            inputs = Variable(inputs)
-            if use_cuda:
-                inputs = inputs.cuda()
-            loss = -model.critic.q1_forward(inputs, model.actor(inputs)).mean()
-            total_loss += loss.item()*batch_size
-        total_loss = total_loss / total
-        total_acc = total_loss
-
+    if variable == "states":
+        with torch.no_grad():
+            for batch_idx, (inputs) in enumerate(loader):
+                batch_size = inputs.size(0)
+                total += batch_size
+                inputs = Variable(inputs)
+                if use_cuda:
+                    inputs = inputs.cuda()
+                loss = -model.critic.q1_forward(inputs, model.actor(inputs)).mean()
+                total_loss += loss.item()*batch_size
+            total_loss = total_loss / total
+            total_acc = total_loss
+    elif variable == "actions":
+        # get first sample from batch.
+        # perturb /w noise from normal dist (0 mean, 0.1 var), and sample loss "num_samples" times
+        # Note: same state is sample every time (intentional + tested), since we want to
+        # keep the state fixed and vary the action.
+        ptr = iter(loader)
+        state = ptr.next()[0].unsqueeze(0).cuda()
+        action = model.actor(state)
+        m = torch.distributions.normal.Normal(torch.Tensor([0.0]), torch.Tensor([0.1]))
+        with torch.no_grad():
+            for _ in range(num_samples):
+                action = model.actor(state)
+                noise = m.sample(action.size()).squeeze(0).T.cuda() # hacky reshaping. fix this.
+                loss = -model.critic.q1_forward(state, action + noise).mean()
+                total_loss += loss.item()
+            total_loss = total_loss / num_samples
+            total_acc = total_loss
     return total_loss, total_acc
 
 
