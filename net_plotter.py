@@ -3,6 +3,7 @@
 """
 
 import torch
+import ipdb
 import copy
 from os.path import exists, commonprefix
 import h5py
@@ -241,6 +242,7 @@ def setup_direction(args, dir_file, net):
 
     # Create the plotting directions
     f = h5py.File(dir_file,'w') # create file, fail if exists
+    # ipdb.set_trace()
     if not args.dir_file:
         print("Setting up the plotting directions...")
         if args.model_file2:
@@ -248,6 +250,7 @@ def setup_direction(args, dir_file, net):
             xdirection = create_target_direction(net, net2, args.dir_type)
         else:
             xdirection = create_random_direction(net, args.dir_type, args.xignore, args.xnorm)
+        # print('x direction:', xdirection)
         h5_util.write_list(f, 'xdirection', xdirection)
 
         if args.y:
@@ -258,6 +261,7 @@ def setup_direction(args, dir_file, net):
                 ydirection = create_target_direction(net, net3, args.dir_type)
             else:
                 ydirection = create_random_direction(net, args.dir_type, args.yignore, args.ynorm)
+            # print('y direction:', ydirection)
             h5_util.write_list(f, 'ydirection', ydirection)
 
     f.close()
