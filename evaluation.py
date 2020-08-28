@@ -11,7 +11,7 @@ import ipdb
 from torch.autograd.variable import Variable
 
 
-def eval_custom(model, loader, variable="states", use_cuda=False, num_samples=64):
+def eval_custom(model, loader, variable="states", use_cuda=False, num_samples=1, custom_state=None):
     """
     Evaluate the loss value for a given 'net' on the dataset provided by the loader.
 
@@ -48,8 +48,11 @@ def eval_custom(model, loader, variable="states", use_cuda=False, num_samples=64
         # perturb /w noise from normal dist (0 mean, 0.1 var), and sample loss "num_samples" times
         # Note: same state is sample every time (intentional + tested), since we want to
         # keep the state fixed and vary the action.
-        ptr = iter(loader)
-        state = ptr.next()[0].unsqueeze(0).cuda()
+        if(custom_state):
+            state = custom_state
+        else:
+            ptr = iter(loader)
+            state = ptr.next()[0].unsqueeze(0).cuda()
         action = model.actor(state)
         m = torch.distributions.normal.Normal(torch.Tensor([0.0]), torch.Tensor([0.1]))
         with torch.no_grad():
